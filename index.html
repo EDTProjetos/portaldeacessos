@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portal de Acessos Agentes</title>
+    
+    <!-- Link para o Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Link para o seu CSS customizado -->
+    <link rel="stylesheet" href="styles.css">
+
+    <!-- Configuração do Inter Font e Tailwind para garantir arredondamento -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+</head>
+<body class="animated-bg text-gray-800 flex flex-col items-center justify-start pt-28 pb-20">
+
+    <!-- Header Bar Fixa com botão de Admin -->
+    <header class="fixed top-0 left-0 w-full header-gradient shadow-2xl z-10">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+            <div class="flex items-center">
+                <span class="text-3xl sm:text-4xl text-yellow-300 mr-3 transform -rotate-12">🔑</span>
+                <h1 class="text-3xl sm:text-4xl font-extrabold text-white tracking-wider">Portal Acessos</h1>
+            </div>
+            
+            <!-- Botão Admin Login / Logout -->
+            <button
+                id="adminButton"
+                onclick="toggleAdminModal()"
+                class="px-4 py-2 bg-blue-500 hover:bg-blue-600 rounded-lg font-bold text-white transition-all duration-300 shadow-md flex items-center text-sm"
+            >
+                <span id="adminButtonText">Login Admin</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Container Principal -->
+    <div class="w-full max-w-2xl p-6 md:p-10 bg-white rounded-xl shadow-2xl ring-4 ring-blue-500/10 transition-all duration-300">
+        <header class="text-center mb-8">
+            <h1 class="text-2xl md:text-3xl font-bold text-blue-900" id="mainTitle">Consulta de Credenciais</h1>
+            <p class="mt-2 text-gray-600" id="mainSubtitle">Consulte seus logins dos sistemas corporativos.</p>
+        </header>
+
+        <!-- Área de Mensagens (Erros/Sucesso - Reutilizada como Pop-up) -->
+        <div id="messageArea" class="p-3 mb-6 hidden rounded-lg font-medium transition-all duration-300"></div>
+
+        <!-- Barra de Carregamento -->
+        <div id="loadingIndicator" class="loading-bar w-full h-2 bg-blue-200 rounded-full mb-6 hidden">
+            <div class="loading-bar-inner h-full bg-blue-600 rounded-full w-full"></div>
+        </div>
+
+        <!-- Formulário de Busca por Ramal (Visível por padrão/Agente) -->
+        <div id="agentPanel" class="">
+            <div class="mb-8">
+                <label for="ramalInput" class="block text-lg font-medium text-gray-700 mb-2">Digite seu número de Ramal:</label>
+                <div class="flex flex-col sm:flex-row gap-4">
+                    <input
+                        type="number"
+                        id="ramalInput"
+                        placeholder="Ex: 101, 142"
+                        class="flex-grow p-3 rounded-lg border-2 border-blue-400 focus:ring-2 focus:ring-blue-300 focus:border-blue-300 bg-white text-gray-800 transition-colors duration-200 shadow-inner"
+                        aria-label="Número do Ramal"
+                    >
+                    <button
+                        id="searchButton"
+                        onclick="searchRamal()"
+                        class="w-full sm:w-auto px-6 py-3 bg-blue-600 hover:bg-blue-700 rounded-lg font-bold text-white transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-[1.02]"
+                    >
+                        Buscar Acessos
+                    </button>
+                </div>
+            </div>
+
+            <!-- Área de Resultados -->
+            <div id="resultsArea" class="grid grid-cols-1 gap-4 hidden">
+                <!-- Título do Resultado -->
+                <h2 class="text-2xl font-bold text-blue-800 border-b border-blue-400 pb-2 mb-2">Credenciais do Ramal <span id="displayRamal"></span></h2>
+                
+                <!-- Cards de Credenciais -->
+                <div id="credentialsList" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Credenciais serão injetadas aqui -->
+                </div>
+                
+                <!-- Aviso de Segurança com fundo claro -->
+                <p class="text-sm text-yellow-900 mt-4 p-3 bg-yellow-100 rounded-lg border border-yellow-300">
+                    <span class="font-bold">Atenção de Segurança:</span> Estas credenciais são confidenciais. Não as compartilhe.
+                </p>
+            </div>
+        </div>
+
+        <!-- Painel de Inclusão de Acessos (Admin) -->
+        <div id="adminPanel" class="hidden">
+            <h2 class="text-2xl font-bold text-red-700 border-b border-red-400 pb-2 mb-6">Painel Administrativo: Inclusão de Acessos</h2>
+            
+            <form id="addAgentForm" onsubmit="event.preventDefault(); addNewAgent();">
+                <!-- Ramal e Nome do Agente -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <div>
+                        <label for="newRamal" class="block text-sm font-medium text-gray-700 mb-1">Ramal (Chave Única):</label>
+                        <input type="number" id="newRamal" required class="w-full p-2 rounded-lg border border-gray-300 focus:ring-1 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label for="newName" class="block text-sm font-medium text-gray-700 mb-1">Nome Completo (Exibição):</label>
+                        <input type="text" id="newName" required class="w-full p-2 rounded-lg border border-gray-300 focus:ring-1 focus:ring-blue-500">
+                    </div>
+                </div>
+
+                <h3 class="text-lg font-semibold text-blue-800 mb-3">Detalhes de Acesso dos Sistemas</h3>
+
+                <!-- Seção Channels -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 p-3 bg-blue-50 rounded-lg">
+                    <div>
+                        <label for="newChannelsUser" class="block text-sm font-medium text-blue-900 mb-1">Channels - Usuário:</label>
+                        <input type="text" id="newChannelsUser" required class="w-full p-2 rounded-lg border border-blue-300 focus:ring-1 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label for="newChannelsPass" class="block text-sm font-medium text-blue-900 mb-1">Channels - Senha:</label>
+                        <input type="text" id="newChannelsPass" required class="w-full p-2 rounded-lg border border-blue-300 focus:ring-1 focus:ring-blue-500">
+                    </div>
+                </div>
+                
+                <!-- Seção Gestão -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 p-3 bg-blue-50 rounded-lg">
+                    <div>
+                        <label for="newGestaoUser" class="block text-sm font-medium text-blue-900 mb-1">Gestão - Usuário:</label>
+                        <input type="text" id="newGestaoUser" required class="w-full p-2 rounded-lg border border-blue-300 focus:ring-1 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label for="newGestaoPass" class="block text-sm font-medium text-blue-900 mb-1">Gestão - Senha:</label>
+                        <input type="text" id="newGestaoPass" required class="w-full p-2 rounded-lg border border-blue-300 focus:ring-1 focus:ring-blue-500">
+                    </div>
+                </div>
+
+                <!-- Seção Blip -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 p-3 bg-blue-50 rounded-lg">
+                    <div>
+                        <label for="newBlipUser" class="block text-sm font-medium text-blue-900 mb-1">Blip - Usuário:</label>
+                        <input type="text" id="newBlipUser" required class="w-full p-2 rounded-lg border border-blue-300 focus:ring-1 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label for="newBlipPass" class="block text-sm font-medium text-blue-900 mb-1">Blip - Senha:</label>
+                        <input type="text" id="newBlipPass" required class="w-full p-2 rounded-lg border border-blue-300 focus:ring-1 focus:ring-blue-500">
+                    </div>
+                </div>
+
+                <!-- Seção E-mail -->
+                <div class="mb-6">
+                    <label for="newEmail" class="block text-sm font-medium text-gray-700 mb-1">E-mail Corporativo:</label>
+                    <input type="email" id="newEmail" required class="w-full p-2 rounded-lg border border-gray-300 focus:ring-1 focus:ring-blue-500">
+                </div>
+
+                <button
+                    type="submit"
+                    class="w-full px-6 py-3 bg-green-600 hover:bg-green-700 rounded-lg font-bold text-white transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-[1.01]"
+                >
+                    Incluir Novo Agente no Sistema
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Rodapé Fixo com Gradiente -->
+    <footer class="fixed bottom-0 left-0 w-full p-3 text-center text-sm text-white footer-gradient shadow-inner">
+        Desenvolvido por Leahpar Code &copy; 2025
+    </footer>
+
+    <!-- Modal de Login Admin -->
+    <div id="adminModal" class="modal-overlay" onclick="if(event.target.id === 'adminModal') toggleAdminModal()">
+        <div class="modal-content w-full max-w-sm p-8 bg-white rounded-xl shadow-2xl">
+            <h2 class="text-2xl font-bold text-blue-900 mb-6 text-center">Acesso Administrativo</h2>
+            <form id="loginForm" onsubmit="event.preventDefault(); handleAdminLogin();">
+                <div class="mb-4">
+                    <label for="adminUser" class="block text-sm font-medium text-gray-700 mb-1">Usuário:</label>
+                    <input type="text" id="adminUser" required class="w-full p-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500" value="admin">
+                </div>
+                <div class="mb-6">
+                    <label for="adminPass" class="block text-sm font-medium text-gray-700 mb-1">Senha:</label>
+                    <input type="password" id="adminPass" required class="w-full p-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500" value="admin">
+                </div>
+                <button type="submit" class="w-full px-4 py-3 bg-red-600 hover:bg-red-700 rounded-lg font-bold text-white transition-all duration-300 shadow-lg">
+                    Entrar
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Link para o seu JavaScript customizado -->
+    <script src="script.js"></script>
+</body>
+</html>
