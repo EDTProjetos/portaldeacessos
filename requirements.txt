@@ -1,0 +1,6 @@
+flask
+flask-cors
+pyairtable
+pyjwt
+python-dotenv
+gunicorn
