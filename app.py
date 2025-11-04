@@ -1,7 +1,13 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from pyairtable import Table
+from typing import Optional
 import jwt, os, datetime
+
+
+class AirtableConfigError(RuntimeError):
+    """Erro lançado quando a configuração do Airtable está incompleta."""
+    pass
 
 # --- Configuração base ---
 app = Flask(__name__)
@@ -15,7 +21,32 @@ JWT_SECRET = os.getenv("JWT_SECRET", "seu_token_seguro")
 ADMIN_USER = os.getenv("ADMIN_USER", "admin")
 ADMIN_PASS = os.getenv("ADMIN_PASS", "admin")
 
-table = Table(AIRTABLE_API_KEY, AIRTABLE_BASE_ID, AIRTABLE_TABLE_NAME)
+table: Optional[Table] = None
+
+
+def get_airtable_table() -> Table:
+    """Retorna uma instância do Table já validando a configuração necessária."""
+    global table
+
+    if table is not None:
+        return table
+
+    missing = [
+        name for name, value in (
+            ("AIRTABLE_API_KEY", AIRTABLE_API_KEY),
+            ("AIRTABLE_BASE_ID", AIRTABLE_BASE_ID),
+            ("AIRTABLE_TABLE_NAME", AIRTABLE_TABLE_NAME),
+        )
+        if not value
+    ]
+
+    if missing:
+        raise AirtableConfigError(
+            "Variáveis de ambiente obrigatórias ausentes: " + ", ".join(missing)
+        )
+
+    table = Table(AIRTABLE_API_KEY, AIRTABLE_BASE_ID, AIRTABLE_TABLE_NAME)
+    return table
 
 # --- Endpoint de teste ---
 @app.route("/api")
@@ -50,7 +81,15 @@ def get_agent():
     if not ramal:
         return jsonify({"message": "Número do Ramal não fornecido."}), 400
 
-    records = table.all(formula=f"{{Ramal}} = '{ramal}'")
+    try:
+        airtable = get_airtable_table()
+        records = airtable.all(formula=f"{{Ramal}} = '{ramal}'")
+    except AirtableConfigError as error:
+        return jsonify({"message": str(error)}), 500
+    except Exception as error:
+        app.logger.exception("Erro ao consultar Airtable: %s", error)
+        return jsonify({"message": "Erro ao consultar dados do Airtable."}), 500
+
     if not records:
         return jsonify({"message": "Ramal não encontrado."}), 404
 
@@ -74,11 +113,19 @@ def add_agent():
     if not new_agent or "Ramal" not in new_agent:
         return jsonify({"message": "Dados incompletos."}), 400
 
-    existing = table.all(formula=f"{{Ramal}} = '{new_agent['Ramal']}'")
-    if existing:
-        return jsonify({"message": "Ramal já cadastrado."}), 409
+    try:
+        airtable = get_airtable_table()
+        existing = airtable.all(formula=f"{{Ramal}} = '{new_agent['Ramal']}'")
+        if existing:
+            return jsonify({"message": "Ramal já cadastrado."}), 409
 
-    table.create(new_agent)
+        airtable.create(new_agent)
+    except AirtableConfigError as error:
+        return jsonify({"message": str(error)}), 500
+    except Exception as error:
+        app.logger.exception("Erro ao atualizar Airtable: %s", error)
+        return jsonify({"message": "Erro ao salvar dados no Airtable."}), 500
+
     return jsonify({"message": f"Agente (Ramal {new_agent['Ramal']}) criado com sucesso."}), 201
 
 # --- Inicialização ---
