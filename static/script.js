@@ -2,11 +2,13 @@
 const isLocalhost =
     window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
-const API_BASE = isLocalhost
-    ? 'http://localhost:8080'
-    : window.location.origin || '';
+const API_URL = isLocalhost
+    ? 'http://localhost:8080/api'
+    : new URL('./api', window.location.href).toString().replace(/\/$/, '');
 
-const API_URL = `${API_BASE}/api`;
+function buildApiUrl(path) {
+    return `${API_URL}${path}`;
+}
 const SESSION_TIMEOUT_MS = 300000; // 5 minutos (300,000 ms)
 
 let sessionTimer = null;
@@ -89,7 +91,7 @@ async function handleAdminLogin() {
     const pass = document.getElementById('adminPass').value;
 
     try {
-        const response = await fetch(`${API_URL}/login`, {
+        const response = await fetch(buildApiUrl('/login'), {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -176,7 +178,7 @@ async function addNewAgent() {
     };
 
     try {
-        const response = await fetch(`${API_URL}/addAgent`, {
+        const response = await fetch(buildApiUrl('/addAgent'), {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -207,7 +209,7 @@ async function fetchCredentials(ramal) {
     // Esta função agora chama a API segura
     try {
         // A API (Endpoint 2) deve retornar o JSON com os nomes exatos do Airtable
-        const response = await fetch(`${API_URL}/getAgent?ramal=${ramal}`, {
+        const response = await fetch(`${buildApiUrl('/getAgent')}?ramal=${encodeURIComponent(ramal)}`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json'
