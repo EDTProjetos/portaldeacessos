@@ -11,6 +11,11 @@ class AirtableConfigError(RuntimeError):
     """Erro lançado quando a configuração do Airtable está incompleta."""
     pass
 
+
+class AirtableConfigError(RuntimeError):
+    """Erro lançado quando a configuração do Airtable está incompleta."""
+    pass
+
 # --- Configuração base ---
 BASE_DIR = Path(__file__).resolve().parent
 STATIC_DIR = BASE_DIR / "static"
