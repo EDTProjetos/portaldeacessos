@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify
+from flask import send_from_directory
 from flask_cors import CORS
 from pyairtable import Table
 from typing import Optional
@@ -10,7 +11,7 @@ class AirtableConfigError(RuntimeError):
     pass
 
 # --- Configuração base ---
-app = Flask(__name__)
+app = Flask(__name__, static_folder="static", static_url_path="")
 CORS(app)
 
 # Variáveis de ambiente
@@ -48,7 +49,13 @@ def get_airtable_table() -> Table:
     table = Table(AIRTABLE_API_KEY, AIRTABLE_BASE_ID, AIRTABLE_TABLE_NAME)
     return table
 
-# --- Endpoint de teste ---
+# --- Rotas estáticas e endpoint de teste ---
+@app.route("/")
+def index():
+    """Serve a aplicação front-end estática."""
+    return send_from_directory(app.static_folder, "index.html")
+
+
 @app.route("/api")
 def api_status():
     return jsonify({"message": "API Flask do Portal de Acessos online! 🔥"})
