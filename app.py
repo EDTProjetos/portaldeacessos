@@ -1,9 +1,15 @@
 from flask import Flask, request, jsonify
-from flask import send_from_directory
+from flask import send_file
 from flask_cors import CORS
 from pyairtable import Table
 from typing import Optional
 import jwt, os, datetime
+from pathlib import Path
+
+
+class AirtableConfigError(RuntimeError):
+    """Erro lançado quando a configuração do Airtable está incompleta."""
+    pass
 
 
 class AirtableConfigError(RuntimeError):
@@ -11,7 +17,10 @@ class AirtableConfigError(RuntimeError):
     pass
 
 # --- Configuração base ---
-app = Flask(__name__, static_folder="static", static_url_path="")
+BASE_DIR = Path(__file__).resolve().parent
+STATIC_DIR = BASE_DIR / "static"
+
+app = Flask(__name__, static_folder=str(STATIC_DIR), static_url_path="/static")
 CORS(app)
 
 # Variáveis de ambiente
@@ -53,7 +62,11 @@ def get_airtable_table() -> Table:
 @app.route("/")
 def index():
     """Serve a aplicação front-end estática."""
-    return send_from_directory(app.static_folder, "index.html")
+    index_path = STATIC_DIR / "index.html"
+    if not index_path.exists():
+        app.logger.error("Arquivo index.html não encontrado em %s", index_path)
+        return jsonify({"message": "Aplicação estática indisponível."}), 500
+    return send_file(index_path)
 
 
 @app.route("/api")
