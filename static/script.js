@@ -1,8 +1,12 @@
 // --- CONSTANTES E GLOBAIS DE SEGURANÇA ---
-const API_URL =
-    window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-        ? 'http://localhost:8080/api'
-        : 'https://portaldeacessosedt.fly.dev/api';
+const isLocalhost =
+    window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
+const API_BASE = isLocalhost
+    ? 'http://localhost:8080'
+    : window.location.origin || '';
+
+const API_URL = `${API_BASE}/api`;
 const SESSION_TIMEOUT_MS = 300000; // 5 minutos (300,000 ms)
 
 let sessionTimer = null;
